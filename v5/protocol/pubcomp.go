@@ -2,33 +2,33 @@ package protocol
 
 import "bytes"
 
-type PubackProperties struct {
+type PubcompProperties struct {
 	ReasonString string
 	UserProperty map[string][]interface{}
 }
 
 // 下面是 具体协议编码解码
-type Puback struct {
-	FixedHeader      *FixedHeader
-	PacketIdentifier uint16
-	ReasonCode       ReasonCode
-	PubackProperties *PubackProperties
+type Pubcomp struct {
+	FixedHeader       *FixedHeader
+	PacketIdentifier  uint16
+	ReasonCode        ReasonCode
+	PubcompProperties *PubcompProperties
 }
 
-func (m *Puback) Encode(buf *bytes.Buffer) (err error) {
+func (m *Pubcomp) Encode(buf *bytes.Buffer) (err error) {
 	err = m.FixedHeader.Encode(buf)
 	err = setUint16(m.PacketIdentifier, buf)
-	if m.ReasonCode == 0 && m.PubackProperties == nil {
+	if m.ReasonCode == 0 && m.PubcompProperties == nil {
 		return
 	}
 	err = setUint8(uint8(m.ReasonCode), buf)
 
-	var cp Properties = m.PubackProperties
+	var cp Properties = m.PubcompProperties
 	err = Encode(&cp, buf)
 	return
 }
 
-func (m *Puback) Decode(b []byte) {
+func (m *Pubcomp) Decode(b []byte) {
 	p := 0
 	header := &FixedHeader{}
 	header.Decode(b, &p)
@@ -47,9 +47,9 @@ func (m *Puback) Decode(b []byte) {
 	}
 
 	var properties Properties
-	properties = &PubackProperties{}
+	properties = &PubcompProperties{}
 	Decode(&properties, b, &p)
-	m.PubackProperties = properties.(*PubackProperties)
+	m.PubcompProperties = properties.(*PubcompProperties)
 
 	return
 

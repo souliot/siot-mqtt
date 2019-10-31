@@ -25,7 +25,7 @@ func (m *ConnectFlags) Encode(buf *bytes.Buffer) (err error) {
 }
 
 func (m *ConnectFlags) Decode(b []byte, p *int) {
-	if len(b) == 0 {
+	if len(b) <= *p {
 		return
 	}
 	byte1 := b[*p]
