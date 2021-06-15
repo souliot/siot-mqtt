@@ -1,15 +1,10 @@
-package v5
+package v3
 
 import (
 	"bytes"
 
 	util "github.com/souliot/siot-mqtt/util"
 )
-
-type SubscribeProperties struct {
-	SubscriptionIdentifier uint32
-	UserProperty           map[string][]interface{}
-}
 
 type SubscriptionOptions struct {
 	QosLevel                   util.QosLevel
@@ -135,18 +130,14 @@ func (m *SubscribePayload) RemoveUnsubscribeTopic(s *UnsubscribeTopic) {
 
 // 下面是 具体协议编码解码
 type Subscribe struct {
-	FixedHeader         *FixedHeader
-	PacketIdentifier    uint16
-	SubscribeProperties *SubscribeProperties
-	SubscribePayload    *SubscribePayload
+	FixedHeader      *FixedHeader
+	PacketIdentifier uint16
+	SubscribePayload *SubscribePayload
 }
 
 func (m *Subscribe) Encode(buf *bytes.Buffer) (err error) {
 	err = m.FixedHeader.Encode(buf)
 	err = util.SetUint16(m.PacketIdentifier, buf)
-
-	var cp Properties = m.SubscribeProperties
-	err = Encode(&cp, buf)
 
 	err = m.SubscribePayload.Encode(buf)
 	return
@@ -159,11 +150,6 @@ func (m *Subscribe) Decode(b []byte) {
 	m.FixedHeader = header
 
 	m.PacketIdentifier = util.GetUint16(b, &p)
-
-	var properties Properties
-	properties = &SubscribeProperties{}
-	Decode(&properties, b, &p)
-	m.SubscribeProperties = properties.(*SubscribeProperties)
 
 	sp := &SubscribePayload{}
 	sp.Decode(b, &p)

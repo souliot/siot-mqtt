@@ -3,7 +3,10 @@ package v5
 import (
 	"bytes"
 	"fmt"
-	"siot-mqtt/v5/v5"
+
+	util "github.com/souliot/siot-mqtt/util"
+
+	// "github.com/souliot/siot-mqtt/v5"
 	"testing"
 )
 
@@ -37,7 +40,7 @@ type Properties1 struct {
 	SharedSubscriptionAvailable     uint8
 }
 
-var header = &v5.FixedHeader{
+var header = &FixedHeader{
 	DupFlag:         true,
 	Retain:          false,
 	QosLevel:        2,
@@ -45,11 +48,11 @@ var header = &v5.FixedHeader{
 	RemainingLength: 123131,
 }
 
-var connectFlags = &v5.ConnectFlags{
+var connectFlags = &ConnectFlags{
 	true, true, false, 2, false, false, false,
 }
 
-var connectProperties = &v5.ConnectProperties{
+var connectProperties = &ConnectProperties{
 	SessionExpiryInterval:      3600,
 	ReceiveMaximum:             1024,
 	MaximumPacketSize:          65535,
@@ -65,7 +68,7 @@ var connectProperties = &v5.ConnectProperties{
 	// AuthenticationData         :
 }
 
-var WillProperties = &v5.WillProperties{
+var willProperties = &WillProperties{
 	WillDelayInterval:      3600,
 	PayloadFormatIndicator: 36,
 	MessageExpiryInterval:  3600,
@@ -79,7 +82,7 @@ var WillProperties = &v5.WillProperties{
 	},
 }
 
-var connect = &v5.Connect{
+var connect = &Connect{
 	FixedHeader:       header,
 	ProtocolName:      "MQTT",
 	ProtocolLevel:     5,
@@ -87,11 +90,68 @@ var connect = &v5.Connect{
 	KeepAlive:         60,
 	ConnectProperties: connectProperties,
 	ClientId:          "feiciot-1001",
-	WillProperties:    WillProperties,
+	WillProperties:    willProperties,
 	WillTopic:         "/user",
 	WillPayload:       make([]byte, 2),
 	Usename:           "souliot",
 	Password:          "abcd1234",
+}
+
+var subscribePayload1 = &SubscribePayload{
+	SubscribeTopics: []*SubscribeTopic{
+		&SubscribeTopic{
+			TopicFilter: "/llz/up",
+			SubscriptionOptions: &SubscriptionOptions{
+				QosLevel:          util.QosLevel(1),
+				NoLocal:           true,
+				RetainAsPublished: false,
+				RetainHandling:    1,
+				Reserved:          1,
+			},
+		},
+		&SubscribeTopic{
+			TopicFilter: "/llz/down",
+			SubscriptionOptions: &SubscriptionOptions{
+				QosLevel:          util.QosLevel(1),
+				NoLocal:           true,
+				RetainAsPublished: false,
+				RetainHandling:    1,
+				Reserved:          1,
+			},
+		},
+	},
+}
+var subscribePayload2 = &SubscribePayload{
+	SubscribeTopics: []*SubscribeTopic{
+		&SubscribeTopic{
+			TopicFilter: "/llz/up",
+			SubscriptionOptions: &SubscriptionOptions{
+				QosLevel:          util.QosLevel(2),
+				NoLocal:           true,
+				RetainAsPublished: false,
+				RetainHandling:    1,
+				Reserved:          1,
+			},
+		},
+		&SubscribeTopic{
+			TopicFilter: "/llz/down",
+			SubscriptionOptions: &SubscriptionOptions{
+				QosLevel:          util.QosLevel(2),
+				NoLocal:           true,
+				RetainAsPublished: false,
+				RetainHandling:    1,
+				Reserved:          1,
+			},
+		},
+	},
+}
+
+var unsubscribePayload = &UnsubscribePayload{
+	UnsubscribeTopics: []*UnsubscribeTopic{
+		&UnsubscribeTopic{
+			TopicFilter: "/llz/up",
+		},
+	},
 }
 
 func test_FixedHeader(t *testing.T) {
@@ -101,7 +161,7 @@ func test_FixedHeader(t *testing.T) {
 	fmt.Println(buf.Bytes())
 	p := 0
 
-	h := &v5.FixedHeader{}
+	h := &FixedHeader{}
 	h.Decode(buf.Bytes(), &p)
 	fmt.Println(h)
 }
@@ -113,7 +173,7 @@ func test_ConnectFlags(t *testing.T) {
 	// fmt.Println(buf.Bytes())
 
 	p := 0
-	cf := &v5.ConnectFlags{}
+	cf := &ConnectFlags{}
 	cf.Decode(buf.Bytes(), &p)
 	fmt.Println(cf)
 }
@@ -123,14 +183,21 @@ func test_t(t *testing.T) {
 	connect.Encode(buf)
 	// fmt.Println(buf.Bytes())
 
-	c := &v5.Connect{}
+	c := &Connect{}
 
 	c.Decode(buf.Bytes())
 
-	fmt.Println(c)
-	fmt.Println(c.FixedHeader)
-	fmt.Println(c.ConnectProperties)
-	fmt.Println(c.WillProperties)
+	// fmt.Println(c)
+	// fmt.Println(c.FixedHeader)
+	// fmt.Println(c.ConnectProperties)
+	// fmt.Println(c.WillProperties)
+	fmt.Println(subscribePayload1)
+
+	subscribePayload1.Merger(subscribePayload2)
+
+	fmt.Println(subscribePayload1)
+	subscribePayload1.Remove(unsubscribePayload)
+	fmt.Println(subscribePayload1)
 }
 
 func TestAll(t *testing.T) {

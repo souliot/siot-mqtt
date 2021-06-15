@@ -45,5 +45,4 @@ func (m *Publish) Decode(b []byte) {
 	m.Payload = util.GetBytesNoLen(b, &p, int(header.RemainingLength)-l2+l1)
 
 	return
-
 }
