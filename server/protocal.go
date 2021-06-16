@@ -7,7 +7,6 @@ import (
 	"github.com/souliot/fetcp"
 	logs "github.com/souliot/siot-log"
 	util "github.com/souliot/siot-mqtt/util"
-	v5 "github.com/souliot/siot-mqtt/v5"
 )
 
 var (
@@ -19,7 +18,7 @@ type ExtraData struct {
 	ClientId          string
 	PacketIdentifiers map[uint16]struct{}
 	ProtocolLevel     uint8
-	SubscribePayload  *v5.SubscribePayload
+	SubscribePayload  interface{}
 }
 
 type Protocol struct {
@@ -68,10 +67,10 @@ func (m *Callback) OnMessage(c *fetcp.Conn, p fetcp.Packet) bool {
 		var ihandler iHandler
 		switch packet.ProtocolLevel {
 		case 4:
-			ihandler = new(HandlerV3)
+			ihandler = NewHandlerV3()
 			goto NEXT
 		case 5:
-			ihandler = new(HandlerV5)
+			ihandler = NewHandlerV5()
 			goto NEXT
 		default:
 			logs.Error("Not Support Protocol Level...")
@@ -100,6 +99,7 @@ func (m *Callback) OnClose(c *fetcp.Conn) {
 }
 
 func (m *Callback) handleMessage(h iHandler, packet *Packet, c *fetcp.Conn) {
+	// logs.Info("-----------------", packet.MsgType)
 	switch packet.MsgType {
 	case util.MsgConnect:
 		logs.Info("MsgConnect")
@@ -107,35 +107,35 @@ func (m *Callback) handleMessage(h iHandler, packet *Packet, c *fetcp.Conn) {
 	case util.MsgPublish:
 		logs.Info("MsgPublish")
 		go h.Publish(packet, c, m.Srv)
-	// case util.MsgPubAck:
-	// 	logs.Info("MsgPubAck")
-	// 	go processPubAckV5(packet, c)
-	// case util.MsgPubRec:
-	// 	logs.Info("MsgPubRec")
-	// 	go processPubRecV5(packet, c)
-	// case util.MsgPubRel:
-	// 	logs.Info("MsgPubRel")
-	// 	go processPubRelV5(packet, c)
-	// case util.MsgPubComp:
-	// 	logs.Info("MsgPubComp")
-	// 	go processPubCompV5(packet, c)
-	// case util.MsgSubscribe:
-	// 	logs.Info("MsgSubscribe")
-	// 	go processSubscribeV5(packet, c)
-	// case util.MsgUnsubscribe:
-	// 	logs.Info("MsgUnsubscribe")
-	// 	go processUnsubscribeV5(packet, c)
-	// case util.MsgPingReq:
-	// 	logs.Info("MsgPingReq")
-	// 	go processPingReqV5(packet, c)
-	// case util.MsgDisconnect:
-	// 	logs.Info("MsgDisconnect")
-	// 	go processDisconnectV5(packet, c)
-	// case util.MsgAuth:
-	// 	logs.Info("MsgAuth")
-	// 	go processAuthV5(packet, c)
+	case util.MsgPubAck:
+		logs.Info("MsgPubAck")
+		go h.PubAck(packet, c, m.Srv)
+	case util.MsgPubRec:
+		logs.Info("MsgPubRec")
+		go h.PubRec(packet, c, m.Srv)
+	case util.MsgPubRel:
+		logs.Info("MsgPubRel")
+		go h.PubRel(packet, c, m.Srv)
+	case util.MsgPubComp:
+		logs.Info("MsgPubComp")
+		go h.PubComp(packet, c, m.Srv)
+	case util.MsgSubscribe:
+		logs.Info("MsgSubscribe")
+		go h.Subscribe(packet, c, m.Srv)
+	case util.MsgUnsubscribe:
+		logs.Info("MsgUnsubscribe")
+		go h.Unsubscribe(packet, c, m.Srv)
+	case util.MsgPingReq:
+		logs.Info("MsgPingReq")
+		go h.PingReq(packet, c, m.Srv)
+	case util.MsgDisconnect:
+		logs.Info("MsgDisconnect")
+		go h.Disconnect(packet, c, m.Srv)
+	case util.MsgAuth:
+		logs.Info("MsgAuth")
+		go h.Auth(packet, c, m.Srv)
 	default:
-		logs.Error("Unkown Message Type...")
+		logs.Error("Unkown Message Type:", packet.MsgType)
 		// c.Close()
 	}
 	return

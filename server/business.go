@@ -8,15 +8,15 @@ import (
 type iHandler interface {
 	Connect(*Packet, *fetcp.Conn, *Server)
 	Publish(*Packet, *fetcp.Conn, *Server)
-	// PubAck(*Packet, *fetcp.Conn, *Server)
-	// PubRec(*Packet, *fetcp.Conn, *Server)
-	// PubRel(*Packet, *fetcp.Conn, *Server)
-	// PubComp(*Packet, *fetcp.Conn, *Server)
-	// Subscribe(*Packet, *fetcp.Conn, *Server)
-	// Unsubscribe(*Packet, *fetcp.Conn, *Server)
-	// PingReq(*Packet, *fetcp.Conn, *Server)
-	// Disconnect(*Packet, *fetcp.Conn, *Server)
-	// Auth(*Packet, *fetcp.Conn, *Server)
+	PubAck(*Packet, *fetcp.Conn, *Server)
+	PubRec(*Packet, *fetcp.Conn, *Server)
+	PubRel(*Packet, *fetcp.Conn, *Server)
+	PubComp(*Packet, *fetcp.Conn, *Server)
+	Subscribe(*Packet, *fetcp.Conn, *Server)
+	Unsubscribe(*Packet, *fetcp.Conn, *Server)
+	PingReq(*Packet, *fetcp.Conn, *Server)
+	Disconnect(*Packet, *fetcp.Conn, *Server)
+	Auth(*Packet, *fetcp.Conn, *Server)
 }
 
 // **************************************************下发指令********************************************** //

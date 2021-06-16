@@ -34,7 +34,6 @@ func NewPacket(b []byte, c *fetcp.Conn) (p *Packet, err error) {
 	} else {
 		protocolLevel = c.GetExtraData().(*ExtraData).ProtocolLevel
 	}
-
 	msg, err := base.NewMessage(b, protocolLevel, msgType)
 	if err != nil {
 		logs.Error("New Packet Message err:", err)

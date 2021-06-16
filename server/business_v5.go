@@ -5,12 +5,17 @@ import (
 
 	"github.com/souliot/fetcp"
 	logs "github.com/souliot/siot-log"
+	"github.com/souliot/siot-mqtt/db"
 	util "github.com/souliot/siot-mqtt/util"
 	v5 "github.com/souliot/siot-mqtt/v5"
 )
 
 type HandlerV5 struct {
 	mutex *sync.Mutex
+}
+
+func NewHandlerV5() (h *HandlerV5) {
+	return &HandlerV5{new(sync.Mutex)}
 }
 
 var _ iHandler = new(HandlerV5)
@@ -40,7 +45,7 @@ func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 			ReasonCode: util.ReasonCode(resCode),
 		},
 	}
-
+	srv.AddClient(clientid, c, msg.ConnectFlags.CleanStart)
 	DownCommand(c, res)
 
 	if resCode != 0 {
@@ -56,8 +61,6 @@ func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 	}
 	c.PutExtraData(extraData)
 
-	// 如果当前设备已登录 强制下线
-	srv.AddClient(clientid, c)
 	logs.Info("设备登录:", clientid)
 }
 
@@ -127,6 +130,172 @@ func (m *HandlerV5) Publish(p *Packet, c *fetcp.Conn, srv *Server) {
 		DownCommand(c, res)
 	}
 
+}
+
+// 发布响应 QOS1
+func (m *HandlerV5) PubAck(p *Packet, c *fetcp.Conn, srv *Server) {
+	// Do Nothing
+}
+
+// 发布响应 第1步 QOS2
+func (m *HandlerV5) PubRec(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.PubRec)
+	extraData := c.GetExtraData().(*ExtraData)
+	fixedHeader := msg.FixedHeader
+	// TODO:
+	m.mutex.Lock()
+	extraData.PacketIdentifiers[msg.PacketIdentifier] = struct{}{}
+	m.mutex.Unlock()
+
+	fixedHeader.MsgType = util.MsgPubRel
+	fixedHeader.RemainingLength = uint32(2)
+	res := &Packet{
+		Message: &v5.PubRel{
+			FixedHeader:      fixedHeader,
+			PacketIdentifier: msg.PacketIdentifier,
+		},
+	}
+
+	DownCommand(c, res)
+}
+
+// 发布响应 第2步 QOS2
+func (m *HandlerV5) PubRel(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.PubRel)
+	extraData := c.GetExtraData().(*ExtraData)
+	fixedHeader := msg.FixedHeader
+	// TODO:
+	m.mutex.Lock()
+	delete(extraData.PacketIdentifiers, msg.PacketIdentifier)
+	m.mutex.Unlock()
+
+	fixedHeader.MsgType = util.MsgPubComp
+	fixedHeader.RemainingLength = uint32(2)
+	res := &Packet{
+		Message: &v5.PubComp{
+			FixedHeader:      fixedHeader,
+			PacketIdentifier: msg.PacketIdentifier,
+		},
+	}
+
+	DownCommand(c, res)
+}
+
+// 发布响应 第3步 QOS2
+func (m *HandlerV5) PubComp(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.PubComp)
+	extraData := c.GetExtraData().(*ExtraData)
+	// 删除保存的报文标识符
+	m.mutex.Lock()
+	delete(extraData.PacketIdentifiers, msg.PacketIdentifier)
+	m.mutex.Unlock()
+}
+
+// 订阅响应
+func (m *HandlerV5) Subscribe(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.Subscribe)
+	clientid := getClientId(c)
+
+	fixedHeader := msg.FixedHeader
+	ReasonCodes := []util.ReasonCode{}
+	extraData := c.GetExtraData().(*ExtraData)
+	extraData.SubscribePayload.(*v5.SubscribePayload).Merger(msg.SubscribePayload)
+
+	l := 2
+	for _, v := range msg.SubscribePayload.SubscribeTopics {
+		resCode := util.ReasonCode(v.SubscriptionOptions.QosLevel)
+		sub := &db.Sub{
+			ClientId: clientid,
+			Topic:    v.TopicFilter,
+			Qos:      uint8(v.SubscriptionOptions.QosLevel),
+		}
+		err := sub.Insert()
+		if err != nil {
+			resCode = util.ReasonCode(80)
+		}
+		ReasonCodes = append(ReasonCodes, resCode)
+		l++
+	}
+
+	fixedHeader.MsgType = util.MsgSubAck
+	fixedHeader.RemainingLength = uint32(l)
+	res := &Packet{
+		Message: &v5.SubAck{
+			FixedHeader:      fixedHeader,
+			PacketIdentifier: msg.PacketIdentifier,
+			SubAckPayload: &v5.SubAckPayload{
+				ReasonCodes: ReasonCodes,
+			},
+		},
+	}
+
+	DownCommand(c, res)
+}
+
+// 取消订阅响应
+func (m *HandlerV5) Unsubscribe(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.Unsubscribe)
+	clientid := getClientId(c)
+
+	fixedHeader := msg.FixedHeader
+	extraData := c.GetExtraData().(*ExtraData)
+	extraData.SubscribePayload.(*v5.SubscribePayload).Remove(msg.UnsubscribePayload)
+
+	for _, v := range msg.UnsubscribePayload.UnsubscribeTopics {
+		unsub := &db.Sub{
+			ClientId: clientid,
+			Topic:    v.TopicFilter,
+		}
+		unsub.Delete()
+	}
+
+	fixedHeader.MsgType = util.MsgUnsubAck
+	fixedHeader.RemainingLength = uint32(2)
+	res := &Packet{
+		Message: &v5.UnsubAck{
+			FixedHeader:      fixedHeader,
+			PacketIdentifier: msg.PacketIdentifier,
+		},
+	}
+
+	DownCommand(c, res)
+}
+
+// 心跳处理
+func (m *HandlerV5) PingReq(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.PingReq)
+	fixedHeader := msg.FixedHeader
+
+	fixedHeader.MsgType = util.MsgPingResp
+	fixedHeader.RemainingLength = uint32(0)
+	res := &Packet{
+		Message: &v5.PingReq{
+			FixedHeader: fixedHeader,
+		},
+	}
+
+	DownCommand(c, res)
+}
+
+// 认证
+func (m *HandlerV5) Auth(p *Packet, c *fetcp.Conn, srv *Server) {
+	msg := p.Message.(*v5.PingReq)
+	fixedHeader := msg.FixedHeader
+
+	fixedHeader.MsgType = util.MsgPingResp
+	fixedHeader.RemainingLength = uint32(0)
+	res := &Packet{
+		Message: &v5.PingReq{
+			FixedHeader: fixedHeader,
+		},
+	}
+
+	DownCommand(c, res)
+}
+
+// 断开连接操作
+func (m *HandlerV5) Disconnect(p *Packet, c *fetcp.Conn, srv *Server) {
+	c.Close()
 }
 
 func publishMessageV5(p *Packet, srv *Server) {

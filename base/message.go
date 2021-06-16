@@ -50,22 +50,22 @@ func NewMessage(b []byte, protocolLevel uint8, msgType util.MessageType) (msg Me
 			msg = &v3.PubRel{}
 		case util.MsgPubComp:
 			msg = &v3.PubComp{}
-			// case util.MsgSubscribe:
-			// 	msg = &v3.Subscribe{}
-			// case util.MsgSubAck:
-			// 	msg = &v3.SubAck{}
-			// case util.MsgUnsubscribe:
-			// 	msg = &v3.Unsubscribe{}
-			// case util.MsgUnsubAck:
-			// 	msg = &v3.UnsubAck{}
-			// case util.MsgPingReq:
-			// 	msg = &v3.PingReq{}
-			// case util.MsgPingResp:
-			// 	msg = &v3.PingResp{}
-			// case util.MsgDisconnect:
-			// 	msg = &v3.Disconnect{}
-			// case util.MsgAuth:
-			// 	msg = &v3.Auth{}
+		case util.MsgSubscribe:
+			msg = &v3.Subscribe{}
+		case util.MsgSubAck:
+			msg = &v3.SubAck{}
+		case util.MsgUnsubscribe:
+			msg = &v3.Unsubscribe{}
+		case util.MsgUnsubAck:
+			msg = &v3.UnsubAck{}
+		case util.MsgPingReq:
+			msg = &v3.PingReq{}
+		case util.MsgPingResp:
+			msg = &v3.PingResp{}
+		case util.MsgDisconnect:
+			msg = &v3.Disconnect{}
+		default:
+			err = errors.New("Not Support Connect Control Type")
 		}
 	} else if protocolLevel == 5 {
 		switch msgType {
@@ -99,6 +99,8 @@ func NewMessage(b []byte, protocolLevel uint8, msgType util.MessageType) (msg Me
 			msg = &v5.Disconnect{}
 		case util.MsgAuth:
 			msg = &v5.Auth{}
+		default:
+			err = errors.New("Not Support Connect Control Type")
 		}
 	} else {
 		err = errors.New("Not Support Protocol Level")

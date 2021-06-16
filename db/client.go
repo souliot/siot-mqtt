@@ -3,7 +3,6 @@ package db
 import (
 	"time"
 
-	logs "github.com/souliot/siot-log"
 	"github.com/souliot/siot-orm/orm"
 )
 
@@ -23,32 +22,32 @@ func init() {
 func (m *Client) Connect() (err error) {
 	o := orm.NewOrm()
 	o.Using("default")
-	cnt, err := o.QueryTable("Client").Filter("ClientId", m.ClientId).Update(orm.MgoSetOnInsert, orm.Params{
-		"OnlineAt": time.Now().Unix(),
-		"State":    1,
-	})
-	if err != nil {
-		logs.Error(err)
+	exist := o.QueryTable("Client").Filter("ClientId", m.ClientId).Exist()
+
+	if exist {
+		_, err = o.QueryTable("Client").Filter("ClientId", m.ClientId).Update(orm.MgoSet, orm.Params{
+			"OnlineAt": time.Now().Unix(),
+			"State":    1,
+		})
 		return
 	}
-	if cnt == 0 {
-		m.OnlineAt = time.Now().Unix()
-		m.State = 1
-		_, err = o.Insert(m)
-	}
+
+	m.OnlineAt = time.Now().Unix()
+	m.State = 1
+	_, err = o.Insert(m)
+
 	return
 }
 
 func (m *Client) Disconnect() (err error) {
 	o := orm.NewOrm()
 	o.Using("default")
-	cnt, err := o.QueryTable("Client").Filter("ClientId", m.ClientId).Update(orm.MgoSetOnInsert, orm.Params{
+	_, err = o.QueryTable("Client").Filter("ClientId", m.ClientId).Update(orm.MgoSet, orm.Params{
 		"OfflineAt": time.Now().Unix(),
 		"State":     0,
 	})
 	if err != nil {
 		return
 	}
-	logs.Info(cnt)
 	return
 }

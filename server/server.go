@@ -32,14 +32,26 @@ func (m *Server) Stop() {
 	}
 }
 
-func (m *Server) AddClient(id string, c *fetcp.Conn) {
+func (m *Server) AddClient(id string, c *fetcp.Conn, new bool) {
 	// 如果id已经在线，强制断开连接
 	m.mutex.Lock()
-	if m.clientList[id] != nil && m.clientList[id] != c {
-		m.clientList[id].Close()
+	conn, ok := m.clientList[id]
+	m.mutex.Unlock()
+	if ok && new && c != conn {
+		conn.Close()
+		goto NEXT
+		return
 	}
+	// 如果id已经在线，重用之前的连接
+	if ok && !new && c != conn {
+		c = conn
+		return
+	}
+NEXT:
+	m.mutex.Lock()
 	m.clientList[id] = c
 	m.mutex.Unlock()
+	return
 }
 
 func (m *Server) DelClient(id string) {
