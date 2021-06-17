@@ -99,7 +99,7 @@ func (m *Callback) OnClose(c *fetcp.Conn) {
 }
 
 func (m *Callback) handleMessage(h iHandler, packet *Packet, c *fetcp.Conn) {
-	// logs.Info("-----------------", packet.MsgType)
+	logs.Info("-----------------", packet.MsgType)
 	switch packet.MsgType {
 	case util.MsgConnect:
 		logs.Info("MsgConnect")

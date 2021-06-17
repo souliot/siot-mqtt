@@ -64,9 +64,14 @@ func (m *ConnAck) Encode(buf *bytes.Buffer) (err error) {
 	err = m.ConnectAcknowledgeFlags.Encode(buf)
 	err = util.SetUint8(uint8(m.ReasonCode), buf)
 
-	var cp Properties = m.ConnAckProperties
-	err = Encode(&cp, buf)
+	var cp Properties
+	if m.ConnAckProperties != nil {
+		cp = m.ConnAckProperties
+	} else {
+		cp = new(ConnAckProperties)
+	}
 
+	err = Encode(&cp, buf)
 	return
 }
 

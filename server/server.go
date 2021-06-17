@@ -42,6 +42,11 @@ func (m *Server) AddClient(id string, c *fetcp.Conn, new bool) {
 		goto NEXT
 		return
 	}
+
+	if c == conn {
+		conn.Close()
+		return
+	}
 	// 如果id已经在线，重用之前的连接
 	if ok && !new && c != conn {
 		c = conn

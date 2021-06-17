@@ -23,6 +23,11 @@ var _ iHandler = new(HandlerV3)
 // 设备登录
 func (m *HandlerV3) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 	msg := p.Message.(*v3.Connect)
+	if msg.KeepAlive == 0 {
+		c.SetHeartBeatStatus(false)
+	} else {
+		c.SetKeepAlive(int64(msg.KeepAlive) * 3 / 2)
+	}
 	clientid := msg.ClientId
 	resCode := 0
 	err := updateClientState(clientid, 1)

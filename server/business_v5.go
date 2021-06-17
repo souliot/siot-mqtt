@@ -23,6 +23,11 @@ var _ iHandler = new(HandlerV5)
 // 设备登录
 func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 	msg := p.Message.(*v5.Connect)
+	if msg.KeepAlive == 0 {
+		c.SetHeartBeatStatus(false)
+	} else {
+		c.SetKeepAlive(int64(msg.KeepAlive))
+	}
 	clientid := msg.ClientId
 	resCode := 0
 	err := updateClientState(clientid, 1)
@@ -43,6 +48,7 @@ func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 				SessionPresentFlag: false,
 			},
 			ReasonCode: util.ReasonCode(resCode),
+			// ConnAckProperties: &v5.ConnAckProperties{},
 		},
 	}
 	srv.AddClient(clientid, c, msg.ConnectFlags.CleanStart)
