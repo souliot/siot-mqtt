@@ -26,7 +26,7 @@ func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 	if msg.KeepAlive == 0 {
 		c.SetHeartBeatStatus(false)
 	} else {
-		c.SetKeepAlive(int64(msg.KeepAlive))
+		c.SetKeepAlive(int64(msg.KeepAlive) * 3 / 2)
 	}
 	clientid := msg.ClientId
 	resCode := 0
@@ -275,7 +275,7 @@ func (m *HandlerV5) PingReq(p *Packet, c *fetcp.Conn, srv *Server) {
 	fixedHeader.MsgType = util.MsgPingResp
 	fixedHeader.RemainingLength = uint32(0)
 	res := &Packet{
-		Message: &v5.PingReq{
+		Message: &v5.PingResp{
 			FixedHeader: fixedHeader,
 		},
 	}

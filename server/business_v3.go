@@ -273,7 +273,7 @@ func (m *HandlerV3) PingReq(p *Packet, c *fetcp.Conn, srv *Server) {
 	fixedHeader.MsgType = util.MsgPingResp
 	fixedHeader.RemainingLength = uint32(0)
 	res := &Packet{
-		Message: &v3.PingReq{
+		Message: &v3.PingResp{
 			FixedHeader: fixedHeader,
 		},
 	}
