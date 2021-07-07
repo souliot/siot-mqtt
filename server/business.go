@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/souliot/fetcp"
+	logs "github.com/souliot/siot-log"
 	"github.com/souliot/siot-mqtt/db"
 )
 
@@ -22,7 +23,10 @@ type iHandler interface {
 // **************************************************下发指令********************************************** //
 // 指令下发同义操作
 func DownCommand(c *fetcp.Conn, p *Packet) {
-	c.AsyncWritePacket(p, 0)
+	err := c.AsyncWritePacket(p, 0)
+	if err != nil {
+		logs.Error(err)
+	}
 }
 
 func getClientId(c *fetcp.Conn) (clientid string) {

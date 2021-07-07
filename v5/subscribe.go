@@ -142,13 +142,22 @@ type Subscribe struct {
 }
 
 func (m *Subscribe) Encode(buf *bytes.Buffer) (err error) {
+	bt := new(bytes.Buffer)
+	err = util.SetUint16(m.PacketIdentifier, bt)
+
+	var cp Properties
+	if m.SubscribeProperties != nil {
+		cp = m.SubscribeProperties
+	} else {
+		cp = new(SubscribeProperties)
+	}
+	err = Encode(&cp, bt)
+
+	err = m.SubscribePayload.Encode(bt)
+
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
 	err = m.FixedHeader.Encode(buf)
-	err = util.SetUint16(m.PacketIdentifier, buf)
-
-	var cp Properties = m.SubscribeProperties
-	err = Encode(&cp, buf)
-
-	err = m.SubscribePayload.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

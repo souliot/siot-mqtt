@@ -20,15 +20,21 @@ type PubAck struct {
 }
 
 func (m *PubAck) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
-	err = util.SetUint16(m.PacketIdentifier, buf)
-	if m.ReasonCode == 0 && m.PubAckProperties == nil {
-		return
-	}
-	err = util.SetUint8(uint8(m.ReasonCode), buf)
+	bt := new(bytes.Buffer)
+	err = util.SetUint16(m.PacketIdentifier, bt)
+	err = util.SetUint8(uint8(m.ReasonCode), bt)
 
-	var cp Properties = m.PubAckProperties
-	err = Encode(&cp, buf)
+	var cp Properties
+	if m.PubAckProperties != nil {
+		cp = m.PubAckProperties
+	} else {
+		cp = new(PubAckProperties)
+	}
+	err = Encode(&cp, bt)
+
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

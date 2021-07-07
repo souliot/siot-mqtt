@@ -49,13 +49,22 @@ type SubAck struct {
 }
 
 func (m *SubAck) Encode(buf *bytes.Buffer) (err error) {
+	bt := new(bytes.Buffer)
+	err = util.SetUint16(m.PacketIdentifier, bt)
+
+	var cp Properties
+	if m.SubAckProperties != nil {
+		cp = m.SubAckProperties
+	} else {
+		cp = new(SubAckProperties)
+	}
+	err = Encode(&cp, bt)
+
+	err = m.SubAckPayload.Encode(bt)
+
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
 	err = m.FixedHeader.Encode(buf)
-	err = util.SetUint16(m.PacketIdentifier, buf)
-
-	var cp Properties = m.SubAckProperties
-	err = Encode(&cp, buf)
-
-	err = m.SubAckPayload.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

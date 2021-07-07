@@ -48,7 +48,9 @@ func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 				SessionPresentFlag: false,
 			},
 			ReasonCode: util.ReasonCode(resCode),
-			// ConnAckProperties: &v5.ConnAckProperties{},
+			ConnAckProperties: &v5.ConnAckProperties{
+				SessionExpiryInterval: 10,
+			},
 		},
 	}
 	srv.AddClient(clientid, c, msg.ConnectFlags.CleanStart)
@@ -74,26 +76,25 @@ func (m *HandlerV5) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 func (m *HandlerV5) Publish(p *Packet, c *fetcp.Conn, srv *Server) {
 	msg := p.Message.(*v5.Publish)
 	logs.Info(msg.Payload)
-	logs.Info(string(msg.Payload))
-	// clientid := getClientId(c)
+	clientid := getClientId(c)
 	extraData := c.GetExtraData().(*ExtraData)
 
 	fixedHeader := *(msg.FixedHeader)
 	qos := fixedHeader.QosLevel
-	// retain := fixedHeader.Retain
+	retain := fixedHeader.Retain
 	// TODO:
 	// 消息处理
-	// storageMsg := &db.Msg{
-	// 	Topic:   msg.TopicName,
-	// 	Sender:  clientid,
-	// 	Qos:     uint8(qos),
-	// 	Retain:  retain,
-	// 	Payload: string(msg.Payload),
-	// }
-	// err := storageMsg.Insert()
-	// if err != nil {
-	// 	logs.Error("Storage Message Error:", err)
-	// }
+	storageMsg := &db.Message{
+		Topic:   msg.TopicName,
+		Sender:  clientid,
+		Qos:     uint8(qos),
+		Retain:  retain,
+		Payload: string(msg.Payload),
+	}
+	err := storageMsg.Insert()
+	if err != nil {
+		logs.Error("Storage Message Error:", err)
+	}
 
 	// 回复客户端
 	if qos == 0 {
@@ -279,7 +280,6 @@ func (m *HandlerV5) PingReq(p *Packet, c *fetcp.Conn, srv *Server) {
 			FixedHeader: fixedHeader,
 		},
 	}
-
 	DownCommand(c, res)
 }
 
@@ -295,7 +295,7 @@ func (m *HandlerV5) Auth(p *Packet, c *fetcp.Conn, srv *Server) {
 			FixedHeader: fixedHeader,
 		},
 	}
-
+	logs.Info(res)
 	DownCommand(c, res)
 }
 
@@ -305,15 +305,13 @@ func (m *HandlerV5) Disconnect(p *Packet, c *fetcp.Conn, srv *Server) {
 }
 
 func publishMessageV5(p *Packet, srv *Server) {
-	// msg := p.Message.(*v5.Publish)
-	// for _, c := range srv.GetClientList() {
-	// 	if extraData, ok := c.GetExtraData().(*ExtraData); ok {
-	// 		subscribePayload := extraData.SubscribePayload
-	// 		if subscribePayload.HasPublish(msg) {
-	// 			// logs.Info("分发消息：", ClientId)
-	// 			// logs.Info(p.Message.(*v4.Publish).PacketIdentifier)
-	// 			DownCommand(c, p)
-	// 		}
-	// 	}
-	// }
+	msg := p.Message.(*v5.Publish)
+	for _, c := range srv.GetClientList() {
+		if extraData, ok := c.GetExtraData().(*ExtraData); ok {
+			subscribePayload := extraData.SubscribePayload.(*v5.SubscribePayload)
+			if subscribePayload.HasPublish(msg) {
+				DownCommand(c, p)
+			}
+		}
+	}
 }

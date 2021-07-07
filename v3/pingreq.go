@@ -10,6 +10,7 @@ type PingReq struct {
 }
 
 func (m *PingReq) Encode(buf *bytes.Buffer) (err error) {
+	m.FixedHeader.RemainingLength = 0
 	err = m.FixedHeader.Encode(buf)
 	return
 }

@@ -21,17 +21,19 @@ type Auth struct {
 }
 
 func (m *Auth) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
+	bt := new(bytes.Buffer)
 
 	if m.ReasonCode == 0 && m.AuthProperties == nil {
 		return
 	}
 
-	err = util.SetUint8(uint8(m.ReasonCode), buf)
+	err = util.SetUint8(uint8(m.ReasonCode), bt)
 
 	var cp Properties = m.AuthProperties
-	err = Encode(&cp, buf)
+	err = Encode(&cp, bt)
 
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

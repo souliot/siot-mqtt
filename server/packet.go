@@ -22,14 +22,13 @@ func (p *Packet) Serialize() []byte {
 		logs.Error("Packet Serialize err:", err)
 		return nil
 	}
-	logs.Info(buf.Bytes())
+	// logs.Info(buf.Bytes())
 	return buf.Bytes()
 }
 
 func NewPacket(b []byte, c *fetcp.Conn) (p *Packet, err error) {
 	p = &Packet{}
 	msgType := base.GetMessageType(b)
-	logs.Info(msgType)
 	var protocolLevel uint8
 	if msgType == util.MsgConnect {
 		protocolLevel = base.GetProtocolLevel(b)

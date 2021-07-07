@@ -61,25 +61,28 @@ type Connect struct {
 }
 
 func (m *Connect) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
-	err = util.SetString(m.ProtocolName, buf)
-	err = util.SetUint8(m.ProtocolLevel, buf)
-	err = m.ConnectFlags.Encode(buf)
-	err = util.SetUint16(m.KeepAlive, buf)
+	bt := new(bytes.Buffer)
+	err = util.SetString(m.ProtocolName, bt)
+	err = util.SetUint8(m.ProtocolLevel, bt)
+	err = m.ConnectFlags.Encode(bt)
+	err = util.SetUint16(m.KeepAlive, bt)
 
-	err = util.SetString(m.ClientId, buf)
+	err = util.SetString(m.ClientId, bt)
 
 	if m.ConnectFlags.WillFlag {
-		err = util.SetString(m.WillTopic, buf)
-		err = util.SetBytes(m.WillMessage, buf)
+		err = util.SetString(m.WillTopic, bt)
+		err = util.SetBytes(m.WillMessage, bt)
 	}
 	if m.ConnectFlags.UsernameFlag {
-		err = util.SetString(m.Usename, buf)
+		err = util.SetString(m.Usename, bt)
 	}
 	if m.ConnectFlags.PasswordFlag {
-		err = util.SetString(m.Password, buf)
+		err = util.SetString(m.Password, bt)
 	}
 
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

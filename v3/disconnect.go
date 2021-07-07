@@ -10,6 +10,7 @@ type Disconnect struct {
 }
 
 func (m *Disconnect) Encode(buf *bytes.Buffer) (err error) {
+	m.FixedHeader.RemainingLength = 0
 	err = m.FixedHeader.Encode(buf)
 	return
 }

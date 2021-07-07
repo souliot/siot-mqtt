@@ -13,9 +13,9 @@ type PubRec struct {
 }
 
 func (m *PubRec) Encode(buf *bytes.Buffer) (err error) {
+	m.FixedHeader.RemainingLength = 2
 	err = m.FixedHeader.Encode(buf)
 	err = util.SetUint16(m.PacketIdentifier, buf)
-
 	return
 }
 

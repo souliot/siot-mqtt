@@ -39,10 +39,13 @@ type ConnAck struct {
 }
 
 func (m *ConnAck) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
-	err = m.ConnectAcknowledgeFlags.Encode(buf)
-	err = util.SetUint8(uint8(m.ReasonCode), buf)
+	bt := new(bytes.Buffer)
+	err = m.ConnectAcknowledgeFlags.Encode(bt)
+	err = util.SetUint8(uint8(m.ReasonCode), bt)
 
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

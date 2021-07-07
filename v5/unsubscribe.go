@@ -53,13 +53,22 @@ type Unsubscribe struct {
 }
 
 func (m *Unsubscribe) Encode(buf *bytes.Buffer) (err error) {
+	bt := new(bytes.Buffer)
+	err = util.SetUint16(m.PacketIdentifier, bt)
+
+	var cp Properties
+	if m.UnsubscribeProperties != nil {
+		cp = m.UnsubscribeProperties
+	} else {
+		cp = new(UnsubscribeProperties)
+	}
+	err = Encode(&cp, bt)
+
+	err = m.UnsubscribePayload.Encode(bt)
+
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
 	err = m.FixedHeader.Encode(buf)
-	err = util.SetUint16(m.PacketIdentifier, buf)
-
-	var cp Properties = m.UnsubscribeProperties
-	err = Encode(&cp, buf)
-
-	err = m.UnsubscribePayload.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

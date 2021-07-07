@@ -26,17 +26,25 @@ type Publish struct {
 }
 
 func (m *Publish) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
-	err = util.SetString(m.TopicName, buf)
+	bt := new(bytes.Buffer)
+	err = util.SetString(m.TopicName, bt)
 	if m.FixedHeader.QosLevel != util.QosAtMostOnce {
-		err = util.SetUint16(m.PacketIdentifier, buf)
+		err = util.SetUint16(m.PacketIdentifier, bt)
 	}
 
-	var pp Properties = m.PublishProperties
-	err = Encode(&pp, buf)
+	var cp Properties
+	if m.PublishProperties != nil {
+		cp = m.PublishProperties
+	} else {
+		cp = new(PublishProperties)
+	}
+	err = Encode(&cp, bt)
 
-	err = util.SetBytesNoLen(m.Payload, buf)
+	err = util.SetBytesNoLen(m.Payload, bt)
 
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

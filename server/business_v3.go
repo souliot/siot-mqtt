@@ -73,7 +73,6 @@ func (m *HandlerV3) Connect(p *Packet, c *fetcp.Conn, srv *Server) {
 func (m *HandlerV3) Publish(p *Packet, c *fetcp.Conn, srv *Server) {
 	msg := p.Message.(*v3.Publish)
 	logs.Info(msg.Payload)
-	logs.Info(string(msg.Payload))
 	clientid := getClientId(c)
 	extraData := c.GetExtraData().(*ExtraData)
 

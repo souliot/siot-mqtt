@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/souliot/fetcp"
+
 	"github.com/souliot/siot-mqtt/db"
 	"github.com/souliot/siot-mqtt/server"
 	"github.com/souliot/siot-mqtt/util"
@@ -21,7 +23,7 @@ func main() {
 		DbName:   "llz-mqtt",
 	}
 	db.InitMongo(ms)
-	srv := server.NewServer()
+	srv := server.NewServer(fetcp.WithPort(1883))
 	defer func() {
 		srv.Stop()
 	}()

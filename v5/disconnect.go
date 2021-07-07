@@ -21,17 +21,20 @@ type Disconnect struct {
 }
 
 func (m *Disconnect) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
+	bt := new(bytes.Buffer)
 
-	if m.ReasonCode == 0 && m.DisconnectProperties == nil {
-		return
+	err = util.SetUint8(uint8(m.ReasonCode), bt)
+	var cp Properties
+	if m.DisconnectProperties != nil {
+		cp = m.DisconnectProperties
+	} else {
+		cp = new(DisconnectProperties)
 	}
+	err = Encode(&cp, bt)
 
-	err = util.SetUint8(uint8(m.ReasonCode), buf)
-
-	var cp Properties = m.DisconnectProperties
-	err = Encode(&cp, buf)
-
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

@@ -20,15 +20,21 @@ type PubRec struct {
 }
 
 func (m *PubRec) Encode(buf *bytes.Buffer) (err error) {
-	err = m.FixedHeader.Encode(buf)
-	err = util.SetUint16(m.PacketIdentifier, buf)
-	if m.ReasonCode == 0 && m.PubRecProperties == nil {
-		return
-	}
-	err = util.SetUint8(uint8(m.ReasonCode), buf)
+	bt := new(bytes.Buffer)
+	err = util.SetUint16(m.PacketIdentifier, bt)
+	err = util.SetUint8(uint8(m.ReasonCode), bt)
 
-	var cp Properties = m.PubRecProperties
-	err = Encode(&cp, buf)
+	var cp Properties
+	if m.PubRecProperties != nil {
+		cp = m.PubRecProperties
+	} else {
+		cp = new(PubRecProperties)
+	}
+	err = Encode(&cp, bt)
+
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
+	err = m.FixedHeader.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 

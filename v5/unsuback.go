@@ -49,13 +49,22 @@ type UnsubAck struct {
 }
 
 func (m *UnsubAck) Encode(buf *bytes.Buffer) (err error) {
+	bt := new(bytes.Buffer)
+	err = util.SetUint16(m.PacketIdentifier, bt)
+
+	var cp Properties
+	if m.UnsubAckProperties != nil {
+		cp = m.UnsubAckProperties
+	} else {
+		cp = new(UnsubAckProperties)
+	}
+	err = Encode(&cp, bt)
+
+	err = m.UnsubAckPayload.Encode(bt)
+
+	m.FixedHeader.RemainingLength = uint32(bt.Len())
 	err = m.FixedHeader.Encode(buf)
-	err = util.SetUint16(m.PacketIdentifier, buf)
-
-	var cp Properties = m.UnsubAckProperties
-	err = Encode(&cp, buf)
-
-	err = m.UnsubAckPayload.Encode(buf)
+	buf.Write(bt.Bytes())
 	return
 }
 
